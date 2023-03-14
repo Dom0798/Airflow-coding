@@ -1,9 +1,10 @@
+# Befor airflow 2.4
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.sensors.http import HttpSensor
-
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime
 from pandas import json_normalize
 import json
@@ -17,13 +18,21 @@ def _process_user(ti):
         'country': user['location']['country'],
         'username': user['login']['username'],
         'password': user['login']['password'],
-        'email': user['email'],})
-    processed_user.to_csv('processed_user.csv', index= None, header= None)
+        'email': user['email']})
+    processed_user.to_csv('/tmp/processed_user.csv', index= None, header= None)
+
+def _store_user():
+    hook = PostgresHook(postgres_conn_id= 'postgres')
+    hook.copy_expert(
+        sql="COPY userts FROM stdin WITH DELIMITER as ','",
+        filename= '/tmp/processed_user.csv'
+    )
 
 with DAG(
     'user_processing',
     start_date= datetime(2022,1,1),
     schedule_interval='@daily',
+    tags=['Own'],
     catchup=False
 ) as dag:
 
@@ -31,14 +40,14 @@ with DAG(
         task_id= 'create_table',
         postgres_conn_id= 'postgres',
         sql= '''
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS userts (
                 firstname TEXT NOT NULL,
                 lastname TEXT NOT NULL,
                 country TEXT NOT NULL,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
                 email TEXT NOT NULL
-        );
+            );
         '''
     )
 
@@ -62,4 +71,9 @@ with DAG(
         python_callable=_process_user
     )
 
-    extract_user >> process_user
+    store_user= PythonOperator(
+        task_id= 'store_user',
+        python_callable= _store_user
+    )
+
+    create_table >> is_api_available >> extract_user >> process_user >> store_user
