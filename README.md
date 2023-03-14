@@ -2,6 +2,10 @@
 This repo contains tips and code for Airflow
 
 ## For installing
+- Download the yaml file and run:
+``` 
+docker compose up -d
+```
 
 ## For testing a task
 ```
@@ -14,4 +18,8 @@ $ airflow tasks test DAG_ID TASK_ID
 $ docker exec -it NAME_OF_POSTGRES_CONTAINER /bin/bash
 $ psql -Uairflow
 $ YOUR_QUERY
+```
+# To launch Flower
+```
+$ docker compose --profile flower up -d
 ```
