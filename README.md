@@ -19,7 +19,15 @@ $ docker exec -it NAME_OF_POSTGRES_CONTAINER /bin/bash
 $ psql -Uairflow
 $ YOUR_QUERY
 ```
+
 # To launch Flower
 ```
 $ docker compose --profile flower up -d
+```
+
+# Check interactions with Elasticsearch
+Once running `docker compose -f .\docker-compose-es.yaml up -d`
+```
+$ docker exec -it NAME_OF_AIRFLOW_SCHEDULER_CONTAINER /bin/bash
+$ curl -X GET 'http://elastic:9200'
 ```
